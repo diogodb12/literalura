@@ -1,36 +1,38 @@
 package com.github.diogodb12.literalura.servico;
 
 import com.github.diogodb12.literalura.cliente.ClienteHttp;
-import com.github.diogodb12.literalura.modelo.DadosResposta;
+import com.github.diogodb12.literalura.dto.DadosLivro;
+import com.github.diogodb12.literalura.dto.DadosResposta;
 import org.springframework.stereotype.Service;
-
-import java.net.URI;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 
 @Service
 public class ServicoGutendex {
 
-    private final ClienteHttp clienteHttp;
-    private final ConversorDados conversor = new ConversorDados();
+    private final String URL_BASE = "https://gutendex.com/books/?search=";
 
-    public ServicoGutendex() {
-        this.clienteHttp = new ClienteHttp();
-    }
+    private ClienteHttp clienteHttp = new ClienteHttp();
+    private ConversorDados conversor = new ConversorDados();
 
-    public DadosResposta buscarLivro(String titulo) throws Exception {
+    public DadosLivro buscarLivro(String titulo) {
 
-        String endereco = "https://gutendex.com/books/?search=" + titulo.replace(" ", "%20");
+        try {
 
-        HttpRequest requisicao = HttpRequest.newBuilder()
-                .uri(URI.create(endereco))
-                .GET()
-                .build();
+            String endereco = URL_BASE + titulo.replace(" ", "%20");
 
-        HttpResponse<String> resposta = clienteHttp
-                .getCliente()
-                .send(requisicao, HttpResponse.BodyHandlers.ofString());
+            String json = clienteHttp.buscarDados(endereco);
 
-        return conversor.obterDados(resposta.body(), DadosResposta.class);
+            DadosResposta resposta =
+                    conversor.obterDados(json, DadosResposta.class);
+
+            if (resposta.getResultados().isEmpty()) {
+                return null;
+            }
+
+            return resposta.getResultados().get(0);
+
+        } catch (Exception e) {
+            System.out.println("Erro ao buscar livro na API.");
+            return null;
+        }
     }
 }
